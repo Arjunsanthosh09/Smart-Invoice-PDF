@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice Generator</title>
+<style>
+  :root {
+    --gold:  #C9A84C;
+    --dark:  #1A1A2E;
+    --light: #F5F5F5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--light); color: #333; }
+
+  header {
+    background: var(--dark);
+    color: white;
+    text-align: center;
+    padding: 28px 20px 18px;
+    letter-spacing: 2px;
+  }
+  header h1 { font-size: 2rem; letter-spacing: 6px; }
+  header p  { color: var(--gold); font-size: 1rem; margin-top: 4px; }
+
+  .container { max-width: 780px; margin: 36px auto; background: white;
+               border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,.08);
+               overflow: hidden; }
+
+  .section { padding: 24px 32px; border-bottom: 1px solid #eee; }
+  .section:last-child { border-bottom: none; }
+  .section-title { font-size: .7rem; font-weight: 700; letter-spacing: 2px;
+                   color: var(--dark); text-transform: uppercase; margin-bottom: 14px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  label  { display: block; font-size: .78rem; font-weight: 600;
+           color: #555; margin-bottom: 4px; }
+  input, select {
+    width: 100%; padding: 9px 12px; border: 1.5px solid #ddd;
+    border-radius: 5px; font-size: .9rem; outline: none;
+    transition: border .2s;
+  }
+  input:focus, select:focus { border-color: var(--gold); }
+
+  /* Items table */
+  .items-header {
+    display: grid;
+    grid-template-columns: 3fr 1.2fr 1fr 60px;
+    gap: 10px; padding: 8px 0;
+    font-size: .75rem; font-weight: 700;
+    color: white; background: var(--dark);
+    border-radius: 5px 5px 0 0;
+    padding: 10px 12px;
+  }
+  .item-row {
+    display: grid;
+    grid-template-columns: 3fr 1.2fr 1fr 60px;
+    gap: 10px; align-items: center;
+    padding: 6px 0;
+  }
+  .btn-remove {
+    background: #e74c3c; color: white; border: none;
+    border-radius: 4px; cursor: pointer; padding: 8px; font-size: .85rem;
+  }
+  .btn-add {
+    margin-top: 10px; padding: 9px 20px;
+    background: transparent; border: 1.5px solid var(--gold);
+    color: var(--gold); border-radius: 5px; cursor: pointer;
+    font-weight: 600; font-size: .85rem; transition: .2s;
+  }
+  .btn-add:hover { background: var(--gold); color: white; }
+
+  .btn-submit {
+    width: 100%; padding: 14px; background: var(--dark); color: white;
+    border: none; font-size: 1rem; font-weight: 700;
+    letter-spacing: 3px; cursor: pointer; transition: .2s;
+  }
+  .btn-submit:hover { background: var(--gold); }
+
+  footer {
+    background: var(--dark); color: #aaa;
+    text-align: center; padding: 14px;
+    font-size: .78rem; letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>I N V O I C E</h1>
+  <p id="co-name-preview">Witness Event Planner</p>
+</header>
+
+<div class="container">
+  <form method="POST" action="/generate" enctype="multipart/form-data">
+
+    <div class="section">
+      <div class="section-title">Company Details</div>
+      <div class="grid-2">
+        <div>
+          <label>Company Name</label>
+          <input name="company_name" value="Witness Event Planners"
+                 oninput="document.getElementById('co-name-preview').textContent=this.value">
+        </div>
+        <div>
+          <label>Locations (comma-separated)</label>
+          <input name="locations" value="Trivandrum,Thiruvalla,Kochi">
+        </div>
+        <div>
+          <label>Phone 1</label>
+          <input name="phone1" value="+91 6238191673">
+        </div>
+        <div>
+          <label>Phone 2</label>
+          <input name="phone2" value="+91 9895684105">
+        </div>
+        <div style="grid-column: span 2;">
+          <label>Email</label>
+          <input name="email" type="email" value="witnesseventplanners@gmail.com">
+        </div>
+      </div>
+    </div>
+
+    <!-- Client & Date -->
+    <div class="section">
+      <div class="section-title">Personal Information</div>
+      <div class="grid-2">
+        <div>
+          <label>Client Name</label>
+          <input name="client" placeholder="Full Name" required>
+        </div>
+        <div>
+          <label>Invoice Date</label>
+          <input name="date" type="date" value="{{ today }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="section">
+      <div class="section-title">Line Items</div>
+      <div class="items-header">
+        <span>Item Description</span><span>Price (₹)</span><span>Qty</span><span></span>
+      </div>
+      <div id="items">
+        <div class="item-row">
+          <input name="service" placeholder="Service description" required>
+          <input name="price" type="number" min="0" step="0.01" placeholder="0.00" required>
+          <input name="qty"   type="number" min="1" value="1" required>
+          <button type="button" class="btn-remove" onclick="removeRow(this)">✕</button>
+        </div>
+      </div>
+      <button type="button" class="btn-add" onclick="addRow()">+ Add Item</button>
+    </div>
+
+    <!-- Submit -->
+    <button type="submit" class="btn-submit">GENERATE INVOICE PDF</button>
+  </form>
+</div>
+
+<footer>Powered by Witness Event Planners · Invoice System</footer>
+
+<script>
+  // Pre-fill today's date
+  const dateInput = document.querySelector('input[name="date"]');
+  if (!dateInput.value) {
+    dateInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  function addRow() {
+    const div = document.createElement('div');
+    div.className = 'item-row';
+    div.innerHTML = `
+      <input name="service" placeholder="Service description">
+      <input name="price" type="number" min="0" step="0.01" placeholder="0.00">
+      <input name="qty"   type="number" min="1" value="1">
+      <button type="button" class="btn-remove" onclick="removeRow(this)">✕</button>`;
+    document.getElementById('items').appendChild(div);
+  }
+
+  function removeRow(btn) {
+    const rows = document.querySelectorAll('.item-row');
+    if (rows.length > 1) btn.closest('.item-row').remove();
+  }
+</script>
+</body>
+</html>
